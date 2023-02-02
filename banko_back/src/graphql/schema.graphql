@@ -1,0 +1,461 @@
+scalar Date
+
+type Algorithm {
+    id: ID!
+    name: String!
+    tags: [Tag!]!
+    user: User                      # User which add this algorithm to Banko
+    likes: Int!
+    dislikes: Int!
+    description: String!
+    codes: [Code!]!                 # Length of 'codes' equals length of 'supportedLanguages'. One Code = One Language
+    examplesOfUse: [Code!]!         # Length of 'examplesOfUse' equals length of 'supportedLanguages'. One ExampleOfUse = One Language
+    explain_steps: [Step!]!
+    isDeleted: Boolean!
+    isActive: Boolean!
+    created_at: Date!
+    updated_at: Date
+    deleted_at: Date
+    supportedLanguages: [Language!]!
+    links: [String!]!                # Links to learn mode about this algorithm
+    complexity: String               # O(n)
+    visiting: [Visit!]!              # Count visiting
+}
+
+type Visit {
+    id: ID!
+    date: String!
+    visited: Int!
+}
+
+type Code {
+    id: ID!
+    code: String!
+    language: Language
+    description: String!
+}
+
+type Language {
+    id: ID!
+    name: String!
+    tags: [Tag!]!           # Can be multiple tags for language. E.g. 'JS' and 'JavaScript'
+    user: User              # User which add this language to Banko
+    created_at: Date!
+    updated_at: Date
+    isActive: Boolean!      # If True results in this language shows
+}
+
+type Step {
+    id: ID!
+    step_number: Int!
+    name: String!             # short name of explanation step
+    description: String!      # Step full description
+    # algorithm: Algorithm    # Algorithm which use this step
+}
+
+type User {
+    id: ID!
+    email: String!
+    nickname: String!
+    # password: String!                     # Password hash (Password shouldn't be returned)
+    isAdmin: Boolean!
+    isBanned: Boolean!
+    isDeleted: Boolean!                     # If user delete account this equals True
+    allCreatedAlgorithms: [Algorithm!]!
+    likedAlgorithms: [Algorithm!]!
+    dislikedAlgorithms: [Algorithm!]!
+    created_at: Date!                       # Date when account was created
+    updated_at: Date                        # last update
+    deleted_at: Date                        # Here stored the date when user delete account. May be null
+    level: Level                            # User level
+}
+
+####################################################
+# Label           #    Min - Max added algorithms  #
+####################################################
+# Beginner        #     [0 - 20]                   #
+# Middle          #     (20 - 50]                  #
+# Advanced        #     (50 - 100]                 #
+# Professional    #     (100 - 250]                #
+# PRO             #     (250 - ...)                #
+# Core Team       #     Core Team Members          #
+####################################################
+
+#  The complexity of the added algorithms is
+#  taken into account when calculating the Level
+
+type Level {
+    id: ID!
+    name: String!              # Beginner, Middle, Advanced, Professional, PRO, Core Team
+    minAddedAlgorithms: Int!   # The minimum number of algorithms added to reach this Level
+    maxAddedAlgorithms: Int!   # The maximum number of algorithms added for this Level
+    description: String!       # Level description
+}
+
+type Tag {
+    id: ID!
+    name: String!
+    color: String!          # 16 bit format
+    group: Group!           # Filter group for which tag belongs to E.g. algorithm type or O(n)
+    user: User!             # User which create this Tag
+    isActive: Boolean!      # If True current tag is using in System
+}
+
+# Groups are using in FilterSection on UI
+# One Section = One Group
+# Filter options from Filter Group equals tags from that Group
+# FilterGroup = Group
+type Group {
+    id: ID!
+    name: String!
+    tags: [Tag!]!
+    showNumber: Int!        # Number to show on UI
+    isActive: Boolean!      # If True current Filter Group shows on UI
+}
+
+type AlgorithmsPerPage {
+    algorithms: [Algorithm!]!   # per page
+    allAlgosLength: Int!
+}
+
+type VisitsPerDate {
+    date: Date!
+    visits: Int!
+}
+
+type LanguagesDistribution {
+    name: String!               # Name of the language
+    percent: Float!             # Percent of algorithms in this language
+    count: Int!                 # Number of algorithms in this language
+    color: String!              # Color of the language in hex format
+}
+
+type UserForAccountPage {
+    id: ID!
+    nickname: String!
+    isAdmin: Boolean!
+    levelName: String!
+    totalLikes: Int!
+    totalDislikes: Int!
+    lastAlgos: [Algorithm!]                         # last 30 algos for banka
+    allAlgosLength: Int!                            # for levels box
+    algosToNextLevel: Int!                          # for levels box
+    nextLevelName: String!                          # for levels box
+    visitsPerDate: [VisitsPerDate!]                 # for activity chart
+    languagesDistribution: [LanguagesDistribution!] # for languages distribution chart
+}
+
+#? Don't delete this
+type UserFromJwt {
+    _id: ID!
+    email: String!
+    nickname: String!
+    # password: String!                     # Password hash (Password shouldn't be returned)
+    isAdmin: Boolean!
+    isBanned: Boolean!
+    isDeleted: Boolean!                     # If user delete account this equals True
+    allCreatedAlgorithms: [Algorithm!]!
+    created_at: Date!                       # Date when account was created
+    updated_at: Date                        # last update
+    deleted_at: Date                        # Here stored the date when user delete account. May be null
+    level: Level                            # User level
+}
+
+type LoginResponse {
+    access_token: String!
+    user: User!
+}
+
+type Query {
+    #Level
+    levels: [Level!]!
+    level(id: String!): Level!
+
+    # Group
+    groups: [Group!]!
+    group(id: String!): Group!
+
+    # Tag
+    tags: [Tag!]!
+    tag(id: String!): Tag!
+
+    # User
+    users: [User!]!
+    user(id: String!): User!
+    getCurrentUser: User!
+
+    # Language
+    languages: [Language!]!
+    language(id: String!): Language!
+
+    # Code
+    codes: [Code!]!
+    code(id: String!): Code!
+
+    # Step
+    steps: [Step!]!
+    step(id: String!): Step!
+
+    # Algorithm
+    algorithms(only_active: Boolean = true): [Algorithm!]!
+    algorithm(id: String!, increment_visit: Boolean = false): Algorithm!
+
+    # Filtered algorithms
+    filteredAlgorithms(input: FilterOptions!): AlgorithmsPerPage!
+
+    # User algos per page
+    userAlgorithmsPerPage(input: InputAlgorithmsPerPage!): AlgorithmsPerPage!
+
+    # User by nickname for account page
+    userForAccountPage(nickname: String!): UserForAccountPage!
+
+    # Admin Panel
+    groupsAdmin: [Group!]!
+    groupsPopulatedAdmin: [Group!]!
+
+    tagsForAdminPanel: [Tag!]!
+
+    usersForAdminPanel: [User!]!
+
+    languagesForAdminPanel: [Language!]!
+    freeTagsForLanguagesTable: [Tag!]!
+
+    algorithmsForAdminPanel: [Algorithm!]!
+}
+
+#######
+
+input NewStep {
+    step_number: Int!
+    name: String!
+    description: String!
+}
+
+input NewStepWithNull {
+    step_number: Int
+    name: String
+    description: String
+}
+
+input NewCode {
+    code: String!
+    languageId: String!
+    description: String!
+}
+
+input NewCodeWithNull {
+    code: String
+    language: NewLanguage
+    description: String
+}
+
+input NewAlgorithm {
+    name: String!
+    tagsIds: [String!]!
+    userId: String!
+    likes: Int
+    dislikes: Int
+    description: String!
+    codes: [NewCode!]                   # < create
+    examplesOfUse: [NewCode!]           # < create
+    explain_steps: [NewStep!]           # < create
+    isDeleted: Boolean = false
+    isActive: Boolean = true
+    created_at: Date
+    updated_at: Date
+    deleted_at: Date
+    supportedLanguagesIds: [String!]!
+    links: [String!]
+    complexity: String!
+}
+
+input NewUser {
+    email: String!
+    nickname: String!
+    password: String! # Password (Plain text)
+    isAdmin: Boolean = false
+    isBanned: Boolean = false
+    isDeleted: Boolean = false
+    allCreatedAlgorithms: [NewAlgorithm!]
+    created_at: Date
+    updated_at: Date
+    deleted_at: Date
+    level: NewLevel
+}
+
+input NewUserWithNull {
+    email: String
+    nickname: String
+    isAdmin: Boolean
+    isBanned: Boolean
+}
+
+input NewLevel {
+    name: String!
+    minAddedAlgorithms: Int!
+    maxAddedAlgorithms: Int!
+    description: String!
+}
+
+input NewLevelWithNull {
+    name: String
+    minAddedAlgorithms: Int
+    maxAddedAlgorithms: Int
+    description: String
+}
+
+input FilterOptions {
+    page: Int!
+    algosPerPage: Int!
+    text: String!
+    tags: [String!]!
+}
+
+input InputAlgorithmsPerPage {
+    nickname: String!
+    page: Int!
+    algosPerPage: Int!
+}
+
+input LoginUserInput {
+    username: String!
+    password: String!
+}
+
+input NewTag {
+    name: String!
+    color: String!
+    group: String!
+    isActive: Boolean! = true
+}
+
+input NewTagWithNull {
+    name: String
+    color: String
+    group: String
+    isActive: Boolean = true
+}
+
+input NewGroup {
+    name: String!
+    showNumber: Int!
+    isActive: Boolean! = true
+}
+
+input NewGroupWithNull {
+    name: String
+    showNumber: Int
+    isActive: Boolean = true
+}
+
+input NewLanguage {
+    name: String
+    isActive: Boolean
+    tags: [String]
+}
+
+input NewLanguageWithNull {
+    name: String
+    isActive: Boolean
+    tags: [String]
+}
+
+input NewAlgorithmAdmin {
+    name: String
+    isActive: Boolean
+}
+
+input AlgoReaction {
+    algorithmId: String!
+    userId: String!
+    operation: String!
+}
+
+type Mutation {
+    # Level
+    createLevel(input: NewLevel!): Level!
+    updateLevel(id: String!, input: NewLevelWithNull!): Level!
+    deleteLevel(id: String!): Level!
+
+    # Group
+    createGroup(input: NewGroup!): Group!
+    deleteGroup(id: String!): Group!
+    updateGroup(id: String!, input: NewGroupWithNull!): Group!
+
+    createGroupAdmin(input: NewGroup!): Group!
+    updateGroupAdmin(id: String!, input: NewGroupWithNull!): Group!
+    deleteGroupAdmin(id: String!): Group!
+
+    # Tag
+    createTag(input: NewTag!): Tag!
+    deleteTag(id: String!): Tag!
+    updateTag(id: String!, input: NewTagWithNull!): Tag!
+    deleteManyTags(ids: [String!]!): Boolean!
+
+    createTagAdmin(input: NewTag!): Tag!
+    updateTagAdmin(id: String!, input: NewTagWithNull!): Tag!
+    deleteTagAdmin(id: String!): Tag!
+
+    # User
+    deleteUser(id: String!): User!
+    updateUser(id: String!, input: NewUserWithNull!): User!
+
+    updateUserAdmin(id: String!, input: NewUserWithNull!): User!
+
+    # Language
+    createLanguage(input: NewLanguage!): Language!
+    deleteLanguage(id: String!): Language!
+    updateLanguage(id: String!, input: NewLanguageWithNull!): Language!
+
+    createLanguageAdmin(input: NewLanguage!): Language!
+    updateLanguageAdmin(id: String!, input: NewLanguageWithNull!): Language!
+    deleteLanguageAdmin(id: String!): Language!
+
+    # Code
+#   createCode(input: NewCode!): Code!
+    deleteCode(codeId: String!, algoId: String!): Code!       # codeId from Algorithm with ID algoId, field 'codes'      <<   Code should be create only with Algo
+    updateCode(id: String!, input: NewCodeWithNull!): Code!
+
+    # Step
+    createStep(input: NewStep!): Step!
+    deleteStep(id: String!): Step!
+    updateStep(id: String!, input: NewStepWithNull!): Step!
+
+    # Algorithm
+    createAlgorithm(input: NewAlgorithm): Algorithm!
+    deleteAlgorithm(id: String): Algorithm!
+    updateAlgorithm(id: String!): Algorithm!                    # <
+    addOneVisit(id: String!): Algorithm!
+#   addLike(algoId: String!, userId: String!): Algorithm!
+
+    updateAlgorithmAdmin(id: String!, input: NewAlgorithmAdmin!): Tag!
+
+    # Tag/Group
+    addTagToGroup(tagId: String!, groupId: String!): Tag!
+    addTagToLanguage(tagId: String!, langId: String!): Language!
+    deleteTagFromLanguage(tagId: String!, langId: String!): Language!
+
+    # User/Level
+    changeUserLevel(levelId: String!, userId: String!): User!
+
+    # User/Language
+    addUserToLanguage(userId: String!, langId: String!): Language!
+
+    # Code/Language
+    changeCodeLanguage(codeId: String!, langId: String!): Code!
+
+    # Algorithm/Tag
+    addTagToAlgorithm(tagId: String!, algoId: String!): Algorithm!
+    addTagsToAlgorithm(tagsIds: [String!]!, algoId: String!): Algorithm!
+    deleteTagFromAlgorithm(tagId: String!, algoId: String!): Algorithm
+    deleteTagsFromAlgorithm(tagsIds: [String!]!, algoId: String!): Algorithm!
+
+    # Login
+    login(loginUserInput: LoginUserInput!): LoginResponse!
+
+    # Signup (Create new user)
+    signup(input: NewUser!): User!
+
+    # Reaction to the Algo (like/dislike)
+    algoReaction(input: AlgoReaction!): Algorithm!
+}
